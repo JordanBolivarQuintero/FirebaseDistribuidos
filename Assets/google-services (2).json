@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "879930275955",
+    "firebase_url": "https://fir-distribuidos-f94da-default-rtdb.firebaseio.com",
+    "project_id": "fir-distribuidos-f94da",
+    "storage_bucket": "fir-distribuidos-f94da.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:879930275955:android:a9de1c9758f1981a311206",
+        "android_client_info": {
+          "package_name": "com.lamondamia.FirebaseDistribuidos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "879930275955-at6majso6tnb836r62b9pdqdtpvqqijm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDU4AYc70eQCcu89UpjchibrVsq08vO53w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "879930275955-at6majso6tnb836r62b9pdqdtpvqqijm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
