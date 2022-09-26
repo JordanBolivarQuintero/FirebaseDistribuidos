@@ -9,6 +9,7 @@ public class UIManager : MonoBehaviour
     //Screen object variables
     public GameObject loginUI;
     public GameObject registerUI;
+    public GameObject verifyUI;
 
     private void Awake()
     {
@@ -33,5 +34,17 @@ public class UIManager : MonoBehaviour
     {
         loginUI.SetActive(false);
         registerUI.SetActive(true);
+    }
+    public void VerfyScreen()
+    {
+        verifyUI.SetActive(true);
+        StartCoroutine(TurnOffVerify());
+    }
+
+    IEnumerator TurnOffVerify()
+    {
+        yield return new WaitForSeconds(3);
+        verifyUI.SetActive(false);
+        LoginScreen();
     }
 }

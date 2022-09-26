@@ -133,12 +133,21 @@ public class AuthManager : MonoBehaviour
         {
             //User is now logged in
             //Now get the result
+
             User = LoginTask.Result;
-            Debug.LogFormat("User signed in successfully: {0} ({1})", User.DisplayName, User.Email);
-            warningLoginText.text = "";
-            confirmLoginText.text = "Logged In";
-            StartCoroutine(LoadGameScene());
-            //SetScore(555);
+
+            if (User.IsEmailVerified)
+            {
+                Debug.LogFormat("User signed in successfully: {0} ({1})", User.DisplayName, User.Email);
+                warningLoginText.text = "";
+                confirmLoginText.text = "Logged In";
+                StartCoroutine(LoadGameScene());
+            }
+            else
+            {
+                StartCoroutine(SendVerificationEmail());
+            }
+
         }
     }
 
@@ -222,7 +231,7 @@ public class AuthManager : MonoBehaviour
                         //Now return to login screen
                         //UIManager.instance.LoginScreen();                        
                         warningRegisterText.text = "";
-                        StartCoroutine(Login(_email, _password));
+                        StartCoroutine(SendVerificationEmail());
                         StartCoroutine(UpdateUsernameDatabase(_username));
                     }
                 }
@@ -306,6 +315,60 @@ public class AuthManager : MonoBehaviour
                 if (a >= 4)
                     break;
             }
+        }
+    }
+    IEnumerator SendVerificationEmail()
+    {
+        if (User != null)
+        {
+            var emailtask = User.SendEmailVerificationAsync();
+            yield return new WaitUntil(predicate: () => emailtask.IsCompleted);
+
+            if (emailtask.Exception != null)
+            {
+                FirebaseException firebaseException = (FirebaseException)emailtask.Exception.GetBaseException();
+                AuthError error = (AuthError)firebaseException.ErrorCode;
+
+                string output = "Unknown Error. Please Try Again";
+
+                switch (error)//In case of any error
+                {
+                    case AuthError.Cancelled:
+                        output = "Verification Task was cancellled";
+                        break;
+                    case AuthError.InvalidRecipientEmail:
+                        output = "Invalid Email";
+                        break;
+                    case AuthError.TooManyRequests:
+                        output = "To Many Requestes";
+                        break;
+                }
+            }
+            else
+            {
+                UIManager.instance.VerfyScreen();
+            }
+        }
+    }
+    public void ResetPasswordButton()
+    {
+        string email = emailLoginField.text;
+        StartCoroutine(SendEmailRecovery(email));
+    }
+
+    IEnumerator SendEmailRecovery(string email)
+    {
+        var resetTask = auth.SendPasswordResetEmailAsync(email);
+
+        yield return new WaitUntil(() => resetTask.IsCompleted);
+
+        if (resetTask.Exception != null)
+        {
+            Debug.LogError("SendPasswordResetEmailAsync encountered an error: " + resetTask.Exception);
+        }
+        else
+        {
+            UIManager.instance.VerfyScreen();
         }
     }
 }
