@@ -3,7 +3,10 @@ using UnityEngine;
 using Firebase;
 using Firebase.Auth;
 using TMPro;
+using UnityEngine.UI;
 using Firebase.Database;
+using UnityEngine.SceneManagement;
+using System.Linq;
 
 public class AuthManager : MonoBehaviour
 {
@@ -29,6 +32,9 @@ public class AuthManager : MonoBehaviour
     public TMP_InputField passwordRegisterVerifyField;
     public TMP_Text warningRegisterText;
 
+    [Header("UserData")]
+    [SerializeField] Transform texts;
+
     void Awake()
     {
         //Check that all of the necessary dependencies for Firebase are present on the system
@@ -53,6 +59,19 @@ public class AuthManager : MonoBehaviour
         //Set the authentication instance object
         auth = FirebaseAuth.DefaultInstance;
         DBreference = FirebaseDatabase.DefaultInstance.RootReference;
+        User = auth.CurrentUser;
+    }
+    public void ClearLoginFeilds()
+    {
+        emailLoginField.text = "";
+        passwordLoginField.text = "";
+    }
+    public void ClearRegisterFeilds()
+    {
+        usernameRegisterField.text = "";
+        emailRegisterField.text = "";
+        passwordRegisterField.text = "";
+        passwordRegisterVerifyField.text = "";
     }
 
     //Function for the login button
@@ -66,6 +85,13 @@ public class AuthManager : MonoBehaviour
     {
         //Call the register coroutine passing the email, password, and username
         StartCoroutine(Register(emailRegisterField.text, passwordRegisterField.text, usernameRegisterField.text));
+    }
+    public void SignOutButton()
+    {
+        auth.SignOut();
+        SceneManager.LoadScene(0);
+        /*ClearRegisterFeilds();
+        ClearLoginFeilds();*/
     }
 
     private IEnumerator Login(string _email, string _password)
@@ -111,7 +137,15 @@ public class AuthManager : MonoBehaviour
             Debug.LogFormat("User signed in successfully: {0} ({1})", User.DisplayName, User.Email);
             warningLoginText.text = "";
             confirmLoginText.text = "Logged In";
+            StartCoroutine(LoadGameScene());
+            //SetScore(555);
         }
+    }
+
+    private IEnumerator LoadGameScene()
+    {
+        yield return new WaitForSeconds(2);
+        SceneManager.LoadScene(1);
     }
 
     private IEnumerator Register(string _email, string _password, string _username)
@@ -186,11 +220,98 @@ public class AuthManager : MonoBehaviour
                     {
                         //Username is now set
                         //Now return to login screen
-                        UIManager.instance.LoginScreen();
+                        //UIManager.instance.LoginScreen();                        
                         warningRegisterText.text = "";
+                        StartCoroutine(Login(_email, _password));
+                        StartCoroutine(UpdateUsernameDatabase(_username));
                     }
                 }
+
+
             }
         }
     }
+
+    private IEnumerator UpdateUsernameDatabase(string _username)
+    {
+        UserData data = new UserData();
+        data.username = _username;
+        data.score = 0;
+
+        string json = JsonUtility.ToJson(data);
+        var DBTask = DBreference.Child("users").Child(User.UserId).SetRawJsonValueAsync(json);
+
+        yield return new WaitUntil(predicate: () => DBTask.IsCompleted);
+
+        if (DBTask.Exception != null)
+        {
+            Debug.LogWarning(message: $"Failed to register task with {DBTask.Exception}");
+        }
+        else
+        {
+            PlayerPrefs.SetInt("score", data.score);
+        }
+    }
+
+    public void SetScore(int _score)
+    {
+        StartCoroutine(UpdateScore(_score));
+    }
+    public IEnumerator UpdateScore(int _score)
+    {
+        var DBTask = DBreference.Child("users").Child(User.UserId).Child("score").SetValueAsync(_score);
+
+        yield return new WaitUntil(predicate: () => DBTask.IsCompleted);
+
+        if (DBTask.Exception != null)
+        {
+            Debug.LogWarning(message: $"Failed to register task with {DBTask.Exception}");
+        }
+        else
+        {
+            Debug.Log("new best score set at data base");
+        }
+    }
+    
+    public void GetScoreboardValues()
+    {
+        StartCoroutine(LoadScoreboardData());
+    }
+    private IEnumerator LoadScoreboardData()
+    {
+        //Get all the users data ordered by kills amount
+        var DBTask = DBreference.Child("users").OrderByChild("score").GetValueAsync();
+
+        yield return new WaitUntil(predicate: () => DBTask.IsCompleted);
+
+        if (DBTask.Exception != null)
+        {
+            Debug.LogWarning(message: $"Failed to register task with {DBTask.Exception}");
+        }
+        else
+        {
+            //Data has been retrieved
+            DataSnapshot snapshot = DBTask.Result;
+
+            //Loop through every users UID
+            int a = 0;
+            foreach (DataSnapshot childSnapshot in snapshot.Children.Reverse<DataSnapshot>())
+            {
+                string username = childSnapshot.Child("username").Value.ToString();
+                int score = int.Parse(childSnapshot.Child("score").Value.ToString());
+
+                texts.GetChild(a).gameObject.GetComponent<Text>().text = (a + 1) + ". " + username + ":   " + score;
+
+                a++;
+                if (a >= 4)
+                    break;
+            }
+        }
+    }
+}
+
+public class UserData
+{
+    public string username;
+    public int score;
 }
